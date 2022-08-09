@@ -11,7 +11,7 @@ class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
+        Fetcher.getRatesInfo(from: "https://api.coingecko.com/api/v3/exchange_rates")
     }
 
 
