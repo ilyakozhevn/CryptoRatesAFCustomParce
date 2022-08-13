@@ -18,8 +18,8 @@ class ConverterViewController: UIViewController, UIPickerViewDelegate, UIPickerV
     @IBOutlet weak var baseCurrencyLabel: UILabel!
     @IBOutlet weak var targetCurrencyLabel: UILabel!
     
-    var ratesInfo: [String: CurrencyData]?
-    var currencies = [""]
+    private var ratesInfo: [String: CurrencyData]?
+    private var currencies = [""]
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -34,21 +34,7 @@ class ConverterViewController: UIViewController, UIPickerViewDelegate, UIPickerV
         
     }
     
-    private func getRates() {
-        NetworkManager.shared.getRatesInfo(from: Link.rates.rawValue) { [weak self] result in
-            switch result {
-            case .success(let info):
-                self?.ratesInfo = info.rates
-                self?.currencies = self?.ratesInfo?.map { $0.key }.sorted() ?? [""]
-                self?.activityIndicator.stopAnimating()
-                self?.currencyPickerView.reloadAllComponents()
-                self?.updateTargetValue()
-            case .failure(let error):
-                print(error)
-                self?.ratesInfo = nil
-            }
-        }
-    }
+    // MARK: UIPickerViewDelegate, UIPickerViewDataSource
     
     func numberOfComponents(in pickerView: UIPickerView) -> Int {
         2
@@ -63,28 +49,35 @@ class ConverterViewController: UIViewController, UIPickerViewDelegate, UIPickerV
     }
     
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-        updateTargetValue()
+        pickerWasUpdated()
     }
     
-    func updateTargetValue() {
+    // MARK: ConverterViewController private methods
+    
+    private func pickerWasUpdated() {
         let baseCurrencyIndex = currencyPickerView.selectedRow(inComponent: 0)
         let targetCurrencyIndex = currencyPickerView.selectedRow(inComponent: 1)
                 
         let baseCurrency = currencies[baseCurrencyIndex].lowercased()
         let targetCurrency = currencies[targetCurrencyIndex].lowercased()
         
+        updateBaseLabels(with: baseCurrency)
+        updateTargetLabels(with: targetCurrency, from: baseCurrency)
+        
+    }
+    
+    private func updateBaseLabels(with baseCurrency: String) {
         baseCurrencyLabel.text = "1" + (
             ratesInfo?[baseCurrency]?.unit ?? ""
         )
         
         baseCurrencyName.text = ratesInfo?[baseCurrency]?.name
+    }
+    
+    private func updateTargetLabels(with targetCurrency: String, from baseCurrency: String) {
         targetCurrencyName.text = ratesInfo?[targetCurrency]?.name
         
-        
-        let baseCurrencyValue = ratesInfo?[baseCurrency]?.value ?? 1
-        let targetCurrencyValue = ratesInfo?[targetCurrency]?.value ?? 1
-        
-        let targetValue = targetCurrencyValue / baseCurrencyValue
+        let targetValue = getTargetRatio(for: targetCurrency, from: baseCurrency)
         
         var targetCurrencyAmountText = String(format: "%.2f", targetValue)
         
@@ -101,8 +94,37 @@ class ConverterViewController: UIViewController, UIPickerViewDelegate, UIPickerV
         }
         
         targetCurrencyLabel.text = targetCurrencyAmountText + (ratesInfo?[targetCurrency]?.unit ?? "")
+    }
+    
+    private func getTargetRatio(for targetCurrency: String, from baseCurrency: String) -> Double {
+        let baseCurrencyValue = ratesInfo?[baseCurrency]?.value ?? 1
+        let targetCurrencyValue = ratesInfo?[targetCurrency]?.value ?? 1
         
-        
+        return targetCurrencyValue / baseCurrencyValue
+    }
+    
+    // MARK: Networking
+    
+    private func getRates() {
+        NetworkManager.shared.getRatesInfo(from: Link.rates.rawValue) { [weak self] result in
+            switch result {
+            case .success(let info):
+                self?.ratesInfo = info.rates
+                self?.currencies = self?.ratesInfo?.map { $0.key }.sorted() ?? [""]
+                
+                self?.activityIndicator.stopAnimating()
+                
+                self?.currencyPickerView.reloadAllComponents()
+                self?.pickerWasUpdated()
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    self?.activityIndicator.stopAnimating()
+                    self?.baseCurrencyName.text = error.localizedDescription
+                    self?.targetCurrencyName.text = ""
+                }
+                print(error)
+            }
+        }
     }
 
 }
