@@ -109,7 +109,7 @@ class ConverterViewController: UIViewController, UIPickerViewDelegate, UIPickerV
         NetworkManager.shared.getRatesInfo(from: Link.rates.rawValue) { [weak self] result in
             switch result {
             case .success(let info):
-                self?.ratesInfo = info.rates
+                self?.ratesInfo = info
                 self?.currencies = self?.ratesInfo?.map { $0.key }.sorted() ?? [""]
                 
                 self?.activityIndicator.stopAnimating()
@@ -117,11 +117,11 @@ class ConverterViewController: UIViewController, UIPickerViewDelegate, UIPickerV
                 self?.currencyPickerView.reloadAllComponents()
                 self?.pickerWasUpdated()
             case .failure(let error):
-                DispatchQueue.main.async {
+//                DispatchQueue.main.async {
                     self?.activityIndicator.stopAnimating()
                     self?.baseCurrencyName.text = error.localizedDescription
                     self?.targetCurrencyName.text = ""
-                }
+//                }
                 print(error)
             }
         }
