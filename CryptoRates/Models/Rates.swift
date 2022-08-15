@@ -12,18 +12,20 @@ struct RatesData: Decodable {
         guard let ratesData = value as? [String: Any] else { return [:] }
         guard let rates = ratesData["rates"] as? [String: Any] else { return [:] }
         
-        var ratesOut = [String: CurrencyData]()
+        var currencies = [String: CurrencyData]()
         
         for currency in rates {
             guard let currencyData = currency.value as? [String: Any] else { return [:] }
-            guard let name = currencyData["name"] as? String else { return [:] }
-            guard let unit = currencyData["unit"] as? String else { return [:] }
-            guard let value = currencyData["value"] as? Double else { return [:] }
-            guard let type = currencyData["type"] as? String else { return [:] }
-            ratesOut[currency.key] = CurrencyData(name: name, unit: unit, value: value, type: type)
+            
+            currencies[currency.key] = CurrencyData(
+                name: currencyData["name"] as? String ?? "",
+                unit: currencyData["unit"] as? String ?? "",
+                value: currencyData["value"] as? Double ?? 0,
+                type: currencyData["type"] as? String ?? ""
+            )
         }
 
-        return ratesOut
+        return currencies
     }
 }
 
